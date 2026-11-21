@@ -2,43 +2,39 @@
 
 **RAMİ TV Network Management Platform**
 
-RAMI NETWORK is the independent administration application and service workspace for the RAMİ TV multi-channel network.
+RAMI NETWORK is the independent administration application for the RAMİ TV multi-channel network.
 
 ## Product boundaries
 
-- **RAMI NETWORK** — create and manage channels, media libraries, playlists, schedules, channel identity, and broadcast operations.
+- **RAMI NETWORK** — administrator-only app for channel setup, media libraries, playlists, schedules, branding, and broadcast operations.
 - **SINJAR TV SHOW** — viewer application.
 - **ROYAL+ Launcher** — viewer client for the Sinjar TV section.
 - Viewer applications consume published channel data; they do not administer the network.
 
-## Core principles
+## Current repository state
 
-1. A channel has its own identity, media library, and ordered playlist.
-2. Channel numbering is assigned automatically; channel names and logos can be customized.
-3. Published channel changes are delivered through a central service/API without requiring viewer-app updates.
-4. Scheduled playback is controlled by a continuously available broadcast service, not by the administration app or an individual viewer device.
-5. Streaming should use supported streaming formats such as HLS where the media source and rights permit.
+The initial Android/Kotlin/Jetpack Compose project is now on `main`, with an Arabic-first black-and-gold dashboard shell and an Android CI workflow. The dashboard cards are placeholders: channel management, media storage, scheduling, authentication, and live broadcast are **not implemented yet**.
+
+See [the architecture plan](docs/ARCHITECTURE.md) and [the viewer API contract](docs/API_CONTRACT.md).
+
+## Core product rules
+
+1. Each channel has its own identity, media library, and ordered playlist.
+2. Channel numbers are assigned automatically; channel names and logos can be customized.
+3. Published changes reach viewer apps through a central API without requiring app updates.
+4. Playback timing is controlled by a continuously available server-side broadcast service, not by the admin app or an individual viewer device.
+5. Streaming should use HLS or another suitable streaming protocol when the source and distribution rights permit it. Viewers should not need to download an entire long video before playback.
 6. Content must be owned, licensed, or otherwise authorized for distribution.
-7. Infrastructure must be evaluated against actual free-tier limits. No paid service, billing account, or payment method may be introduced without explicit approval.
+7. Infrastructure must be assessed against real free-tier limits. No paid service, billing account, or payment method may be introduced without explicit approval.
 
-## Repository status
+## Build
 
-This repository is being initialized. No production backend, streaming service, or Android application is claimed to exist yet.
-
-## Planned work areas
-
-- Android administration client
-- Channel and playlist data model
-- Authentication and role-based access
-- Central channel catalogue/API
-- Scheduling and broadcast runtime
-- Viewer integration contracts
-- Automated checks and release workflows
+The GitHub Actions workflow `.github/workflows/android-ci.yml` builds the debug APK on pushes and pull requests targeting `main`. The project currently uses Android Gradle Plugin 8.7.3, Kotlin 2.2.0, Java 17, and compile SDK 35.
 
 ## Security
 
-Never commit credentials, signing keys, private tokens, or service secrets. Store deployment secrets in the appropriate GitHub or service secret manager.
+Never commit credentials, signing keys, private tokens, or service secrets. Use repository/service secret storage. Administrative APIs must enforce server-side authentication and authorization; hiding controls in the app is not a security boundary.
 
-## Language
+## Languages
 
-Project discussions and user-facing administration are expected to support Arabic, Turkish, and English.
+The product is planned to support Arabic, Turkish, and English.
