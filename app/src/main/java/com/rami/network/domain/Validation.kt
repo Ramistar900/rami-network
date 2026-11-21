@@ -88,13 +88,14 @@ object Validation {
         val host = uri.host?.trim('[', ']')?.lowercase(Locale.ROOT) ?: return null
         if (host.isBlank() || isPrivateOrReservedHost(host)) return null
 
-        // Only standard secure ports are accepted for URL-based sources.
-        if (uri.port != -1 && uri.port != HTTPS_PORT) return null
-
-        val allowedScheme = scheme == "https" ||
-            (scheme == "rtmps" && uri.port == -1) ||
-            (scheme == "srt" && uri.port in -1..65535)
-        if (!allowedScheme) return null
+        // HTTPS/RTMPS use their standard secure port. SRT requires an explicit
+        // valid listener port because SRT endpoints normally identify an ingest port.
+        val allowedPort = when (scheme) {
+            "https", "rtmps" -> uri.port == -1 || uri.port == HTTPS_PORT
+            "srt" -> uri.port in 1..65535
+            else -> false
+        }
+        if (!allowedPort) return null
         return uri
     }
 
@@ -117,6 +118,13 @@ object Validation {
             if (address.isAnyLocalAddress || address.isLoopbackAddress ||
                 address.isLinkLocalAddress || address.isSiteLocalAddress ||
                 address.isMulticastAddress
+            ) return true
+
+            // Unique-local IPv6 (fc00::/7) and documentation range (2001:db8::/32).
+            if (bytes.size == 16 &&
+                ((bytes[0].toInt() and 0xfe) == 0xfc ||
+                    (bytes[0] == 0x20.toByte() && bytes[1] == 0x01.toByte() &&
+                        bytes[2] == 0x0d.toByte() && bytes[3] == 0xb8.toByte()))
             ) return true
 
             // Explicitly reject IPv4-mapped IPv6 literals.
