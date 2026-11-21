@@ -147,14 +147,14 @@ private fun SectionNavigation(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NavigationButton(AdminSection.DASHBOARD, selected, onSelect)
-            NavigationButton(AdminSection.CHANNELS, selected, onSelect)
-            NavigationButton(AdminSection.LIBRARY, selected, onSelect)
+            NavigationButton(AdminSection.DASHBOARD, selected, onSelect, Modifier.weight(1f))
+            NavigationButton(AdminSection.CHANNELS, selected, onSelect, Modifier.weight(1f))
+            NavigationButton(AdminSection.LIBRARY, selected, onSelect, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NavigationButton(AdminSection.SCHEDULE, selected, onSelect)
-            NavigationButton(AdminSection.BRANDING, selected, onSelect)
-            NavigationButton(AdminSection.SETTINGS, selected, onSelect)
+            NavigationButton(AdminSection.SCHEDULE, selected, onSelect, Modifier.weight(1f))
+            NavigationButton(AdminSection.BRANDING, selected, onSelect, Modifier.weight(1f))
+            NavigationButton(AdminSection.SETTINGS, selected, onSelect, Modifier.weight(1f))
         }
     }
 }
@@ -163,13 +163,14 @@ private fun SectionNavigation(
 private fun NavigationButton(
     section: AdminSection,
     selected: AdminSection,
-    onSelect: (AdminSection) -> Unit
+    onSelect: (AdminSection) -> Unit,
+    modifier: Modifier
 ) {
     val active = section == selected
     if (active) {
         Button(
             onClick = { onSelect(section) },
-            modifier = Modifier.weight(1f),
+            modifier = modifier,
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = RoyalGold,
@@ -181,7 +182,7 @@ private fun NavigationButton(
     } else {
         OutlinedButton(
             onClick = { onSelect(section) },
-            modifier = Modifier.weight(1f),
+            modifier = modifier,
             shape = RoundedCornerShape(12.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, RoyalLine)
         ) {
