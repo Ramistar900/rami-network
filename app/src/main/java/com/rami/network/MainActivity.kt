@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -103,7 +104,7 @@ private fun DashboardScreen() {
                         text = "من هنا ستتم إدارة القنوات والمكتبات وجداول البث مركزياً. تطبيقات المشاهدة ستبقى منفصلة عن أدوات الإدارة.",
                         color = RoyalMuted,
                         fontSize = 14.sp,
-                        lineHeight = 22.sp
+                        style = TextStyle(lineHeight = 22.sp)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -174,7 +175,7 @@ private fun AdminSectionCard(
                 text = description,
                 color = RoyalMuted,
                 fontSize = 13.sp,
-                lineHeight = 20.sp
+                style = TextStyle(lineHeight = 20.sp)
             )
         }
     }
