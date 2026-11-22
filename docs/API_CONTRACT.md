@@ -24,6 +24,15 @@ The schedule engine selects the active block using the highest priority first, t
 
 Both SINJAR TV SHOW and ROYAL+ must consume this same response and must not start independent channel clocks.
 
+## Media source types
+
+- `hls`: adaptive live or VOD HLS stream.
+- `mp4`: progressive HTTPS media.
+- `webm`: progressive HTTPS WebM media; viewers must support the file's video/audio codecs.
+- `rtmp` and `srt`: private ingest/source types; never expose these as viewer URLs.
+
+For progressive WebM and MP4 files, the viewer receives the public HTTPS `viewer_url` and the source type. The viewer app must use a progressive media source and allow the media extractor to identify the container; do not label a WebM file as MP4.
+
 ## Security
 - Viewer function is public but read-only.
 - It calls service-role-only RPCs; the service-role key never leaves Supabase.
