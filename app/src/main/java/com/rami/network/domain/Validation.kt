@@ -51,12 +51,13 @@ object Validation {
 
     /** HTTPS external file/playlist URL with a matching path extension. */
     fun isValidSourceUrl(url: String, type: SourceType): Boolean {
-        if (type != SourceType.HLS && type != SourceType.MP4) return false
+        if (type !in setOf(SourceType.HLS, SourceType.MP4, SourceType.WEBM)) return false
         val uri = parseSafeUri(url) ?: return false
         val path = uri.rawPath?.lowercase(Locale.ROOT) ?: return false
         return when (type) {
             SourceType.HLS -> path.endsWith(".m3u8")
             SourceType.MP4 -> path.endsWith(".mp4")
+            SourceType.WEBM -> path.endsWith(".webm")
             else -> false
         }
     }
@@ -72,7 +73,7 @@ object Validation {
                 uri.rawPath?.lowercase(Locale.ROOT)?.endsWith(".m3u8") == true
             SourceType.RTMP -> uri.scheme.equals("rtmps", ignoreCase = true)
             SourceType.SRT -> uri.scheme.equals("srt", ignoreCase = true)
-            SourceType.MP4 -> false
+            SourceType.MP4, SourceType.WEBM -> false
         }
     }
 
