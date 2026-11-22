@@ -397,7 +397,9 @@ private fun LibraryContent(token: String) {
                         .optJSONObject("data")
                         ?: throw IllegalStateException("تعذر إنشاء قناة اختبار الفيديو.")
                 }
-                val channelId = vodChannel.optString("id")
+                val channelRecord = vodChannel
+                    ?: throw IllegalStateException("تعذر تحميل قناة اختبار الفيديو.")
+                val channelId = channelRecord.optString("id")
                 if (channelId.isBlank()) throw IllegalStateException("معرّف قناة VOD غير صالح.")
 
                 val sourceArray = AdminApi.call(token, "list_sources")
@@ -430,24 +432,26 @@ private fun LibraryContent(token: String) {
                         sourceArray.put(source)
                     }
 
-                    val sourceId = source.optString("id")
+                    var sourceRecord = source
+                        ?: throw IllegalStateException("تعذر تحميل بيانات المصدر.")
+                    val sourceId = sourceRecord.optString("id")
                     if (sourceId.isBlank()) throw IllegalStateException("معرّف المصدر مفقود.")
-                    val rightsStatus = source.optString("rights_status")
-                    if (rightsStatus == "rejected") {
-                        throw IllegalStateException("المصدر مرفوض ولا يمكن إدخاله: " + sample.title)
+                    val rightsStatus = sourceRecord.optString("rights_status")
+                    if (rightsStatus == "rejected" || rightsStatus == "unknown") {
+                        throw IllegalStateException("حالة حقوق المصدر تتطلب مراجعة يدوية: " + sample.title)
                     }
-                    if (rightsStatus != "approved") {
-                        source = AdminApi.call(token, "set_source_rights", JSONObject()
+                    if (rightsStatus != "approved" || !sourceRecord.optBoolean("is_enabled")) {
+                        sourceRecord = AdminApi.call(token, "set_source_rights", JSONObject()
                             .put("source_id", sourceId)
                             .put("rights_status", "approved")
                             .put("rights_note", sample.rightsNote))
-                            .optJSONObject("data") ?: source
+                            .optJSONObject("data") ?: sourceRecord
                     }
-                    if (source.optString("viewer_url") != sample.sourceUrl) {
-                        source = AdminApi.call(token, "set_source_viewer_url", JSONObject()
+                    if (sourceRecord.optString("viewer_url") != sample.sourceUrl) {
+                        sourceRecord = AdminApi.call(token, "set_source_viewer_url", JSONObject()
                             .put("source_id", sourceId)
                             .put("viewer_url", sample.sourceUrl))
-                            .optJSONObject("data") ?: source
+                            .optJSONObject("data") ?: sourceRecord
                     }
 
                     var mediaId = ""
