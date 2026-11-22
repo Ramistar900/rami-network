@@ -288,15 +288,23 @@ private fun ChannelsContent(token: String) {
 private fun LibraryContent(token: String) {
     val scope = rememberCoroutineScope()
     var sources by remember { mutableStateOf(JSONArray()) }
+    var mediaItems by remember { mutableStateOf(JSONArray()) }
     var displayName by rememberSaveable { mutableStateOf("") }
     var sourceUrl by rememberSaveable { mutableStateOf("") }
     var rightsNote by rememberSaveable { mutableStateOf("") }
+    var mediaTitle by rememberSaveable { mutableStateOf("") }
+    var mediaSourceId by rememberSaveable { mutableStateOf("") }
+    var durationSeconds by rememberSaveable { mutableStateOf("1800") }
     var message by remember { mutableStateOf("جارٍ تحميل المصادر...") }
     var busy by remember { mutableStateOf(false) }
     suspend fun loadSources() {
-        runCatching { AdminApi.call(token, "list_sources") }
-            .onSuccess { sources = it.optJSONArray("data") ?: JSONArray(); message = "تم تحديث المصادر." }
-            .onFailure { message = it.message ?: "تعذر تحميل المصادر." }
+        runCatching {
+            AdminApi.call(token, "list_sources") to AdminApi.call(token, "list_media")
+        }.onSuccess { pair ->
+            sources = pair.first.optJSONArray("data") ?: JSONArray()
+            mediaItems = pair.second.optJSONArray("data") ?: JSONArray()
+            message = "تم تحديث المصادر ومكتبة الفيديوهات."
+        }.onFailure { message = it.message ?: "تعذر تحميل المكتبة." }
     }
     LaunchedEffect(token) { loadSources() }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
@@ -354,7 +362,56 @@ private fun LibraryContent(token: String) {
             }
         }
     }
-    Text("لا تعتمد مصدراً إلا إذا كنت تملك حق بثه وتوزيعه. اعتماد المصدر مسؤولية المالك.",
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("إضافة فيديو إلى المكتبة", color = RoyalGold, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            OutlinedTextField(mediaTitle, { mediaTitle = it }, Modifier.fillMaxWidth(),
+                label = { Text("اسم الفيديو أو البرنامج") }, singleLine = true)
+            OutlinedTextField(mediaSourceId, { mediaSourceId = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("معرّف المصدر المعتمد UUID") }, singleLine = true)
+            OutlinedTextField(durationSeconds, { durationSeconds = it.filter(Char::isDigit) },
+                Modifier.fillMaxWidth(), label = { Text("المدة بالثواني") }, singleLine = true)
+            Button(onClick = {
+                val duration = durationSeconds.toLongOrNull()
+                if (duration == null || duration <= 0L) {
+                    message = "أدخل مدة صحيحة بالثواني."
+                } else {
+                    busy = true
+                    scope.launch {
+                        runCatching {
+                            AdminApi.call(token, "create_media", JSONObject()
+                                .put("source_id", mediaSourceId)
+                                .put("title", mediaTitle.trim())
+                                .put("duration_ms", duration * 1000L))
+                        }.onSuccess {
+                            mediaTitle = ""; message = "تمت إضافة الفيديو إلى المكتبة."
+                            loadSources()
+                        }.onFailure { message = it.message ?: "تعذر إضافة الفيديو." }
+                        busy = false
+                    }
+                }
+            }, enabled = !busy && mediaTitle.isNotBlank() && mediaSourceId.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = RoyalGold, contentColor = RoyalBlack)
+            ) { Text("حفظ الفيديو") }
+        }
+    }
+
+    SectionTitle("الفيديوهات المسجلة")
+    if (mediaItems.length() == 0) Text("لا توجد فيديوهات بعد.", color = RoyalMuted, fontSize = 12.sp)
+    for (index in 0 until mediaItems.length()) {
+        val media = mediaItems.optJSONObject(index) ?: continue
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
+            Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(media.optString("title"), color = RoyalGold, fontSize = 14.sp)
+                Text("معرّف الفيديو: " + media.optString("id"), color = RoyalMuted, fontSize = 10.sp)
+                Text("معرّف المصدر: " + media.optString("source_id"), color = RoyalMuted, fontSize = 10.sp)
+            }
+        }
+    }
+    Text("لا تعتمد مصدراً إلا إذا كنت تملك حق بثه وتوزيعه. لا يُعرض رابط المصدر الخاص للمشاهدين؛ رابط المشاهدة العام فقط هو الذي يُنشر.",
         color = RoyalMuted, fontSize = 11.sp)
 }
 
@@ -362,15 +419,48 @@ private fun LibraryContent(token: String) {
 private fun ScheduleContent(token: String) {
     val scope = rememberCoroutineScope()
     var channelId by rememberSaveable { mutableStateOf("") }
+    var mediaId by rememberSaveable { mutableStateOf("") }
     var mode by rememberSaveable { mutableStateOf("live") }
     var streamUrl by rememberSaveable { mutableStateOf("") }
     var message by remember { mutableStateOf("اختر قناة مسجلة وأدخل بيانات البث عند توفرها.") }
+    var playlistSummary by remember { mutableStateOf("") }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("حالة البث المركزية", color = RoyalGold, fontSize = 19.sp, fontWeight = FontWeight.Bold)
             OutlinedTextField(channelId, { channelId = it.trim() }, Modifier.fillMaxWidth(),
                 label = { Text("معرّف القناة UUID") }, singleLine = true)
+            OutlinedTextField(mediaId, { mediaId = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("معرّف الفيديو لإضافته إلى القائمة UUID") }, singleLine = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        runCatching {
+                            AdminApi.call(token, "append_playlist_entry", JSONObject()
+                                .put("channel_id", channelId).put("media_item_id", mediaId))
+                        }.onSuccess {
+                            val list = AdminApi.call(token, "list_playlist", JSONObject().put("channel_id", channelId))
+                                .optJSONArray("data") ?: JSONArray()
+                            playlistSummary = "عدد عناصر القائمة: " + list.length()
+                            message = "تمت إضافة الفيديو إلى قائمة القناة."
+                        }.onFailure { message = it.message ?: "تعذر إضافة الفيديو إلى القائمة." }
+                    }
+                }, enabled = channelId.isNotBlank() && mediaId.isNotBlank()) {
+                    Text("إضافة للقائمة", color = RoyalGold)
+                }
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        runCatching {
+                            AdminApi.call(token, "list_playlist", JSONObject().put("channel_id", channelId))
+                        }.onSuccess {
+                            val list = it.optJSONArray("data") ?: JSONArray()
+                            playlistSummary = "عدد عناصر القائمة: " + list.length()
+                            message = "تم تحميل قائمة القناة."
+                        }.onFailure { message = it.message ?: "تعذر تحميل القائمة." }
+                    }
+                }, enabled = channelId.isNotBlank()) { Text("عرض القائمة", color = RoyalGold) }
+            }
+            if (playlistSummary.isNotBlank()) Text(playlistSummary, color = RoyalMuted, fontSize = 12.sp)
             OutlinedTextField(mode, { mode = it.trim() }, Modifier.fillMaxWidth(),
                 label = { Text("النمط: live أو playlist أو stopped") }, singleLine = true)
             OutlinedTextField(streamUrl, { streamUrl = it.trim() }, Modifier.fillMaxWidth(),
