@@ -24,10 +24,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +42,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rami.network.domain.ContentSource
+import com.rami.network.domain.ContentSourceKind
+import com.rami.network.domain.SourceType
+import com.rami.network.domain.Validation
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 
@@ -363,15 +371,127 @@ private fun ChannelsContent() {
 
 @Composable
 private fun LibraryContent() {
-    EmptyManagementSection(
-        title = "مكتبة المحتوى",
-        description = "مكتبة مستقلة لكل قناة، مع مصادر من تطبيقات الشبكة وروابط خارجية مصرح بها.",
-        requirements = listOf(
-            "ربط المحتوى المصرح به من Almalaki وROYAL TV.",
-            "إضافة روابط HLS أو MP4 ومصادر البث المباشر المدعومة.",
-            "إضافة ملاحظة حقوق التوزيع لكل مصدر.",
-            "ترتيب العناصر وحذفها دون التأثير على مكتبات القنوات الأخرى."
-        )
+    var displayName by rememberSaveable { mutableStateOf("") }
+    var sourceUrl by rememberSaveable { mutableStateOf("") }
+    var rightsNote by rememberSaveable { mutableStateOf("") }
+    var feedback by rememberSaveable { mutableStateOf("") }
+    val draftSources = remember { mutableStateListOf<ContentSource>() }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = RoyalPanel)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(11.dp)
+        ) {
+            Text(
+                "إضافة مصدر HLS",
+                color = RoyalGold,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "أدخل رابط قائمة HLS بصيغة m3u8 مع اسم المصدر وبيان حق التوزيع.",
+                color = RoyalMuted,
+                fontSize = 12.sp
+            )
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = { displayName = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("اسم المصدر") },
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = sourceUrl,
+                onValueChange = { sourceUrl = it.trim() },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("رابط HLS") },
+                placeholder = { Text("https://server.example/channel/index.m3u8") },
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = rightsNote,
+                onValueChange = { rightsNote = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("حقوق التوزيع / الإذن") },
+                minLines = 2
+            )
+            Button(
+                onClick = {
+                    val source = ContentSource(
+                        id = "draft-${draftSources.size + 1}-${displayName.hashCode()}",
+                        kind = ContentSourceKind.EXTERNAL_URL,
+                        displayName = displayName.trim(),
+                        sourceType = SourceType.HLS,
+                        sourceUrl = sourceUrl.trim(),
+                        rightsNote = rightsNote.trim()
+                    )
+                    if (Validation.isValidContentSource(source)) {
+                        draftSources.add(source)
+                        displayName = ""
+                        sourceUrl = ""
+                        rightsNote = ""
+                        feedback = "تمت إضافة المصدر إلى قائمة المعاينة المؤقتة."
+                    } else {
+                        feedback = "تحقق من الاسم ورابط HTTPS بصيغة m3u8 وبيان حقوق التوزيع."
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = RoyalGold,
+                    contentColor = RoyalBlack
+                )
+            ) {
+                Text("التحقق وإضافة المصدر", fontWeight = FontWeight.Bold)
+            }
+            if (feedback.isNotBlank()) {
+                Text(feedback, color = RoyalGold, fontSize = 12.sp)
+            }
+            Text(
+                "مهم: هذه قائمة معاينة داخل جلسة التطبيق فقط. لم تُحفظ على الخادم ولم تُنشر للمشاهدين بعد.",
+                color = RoyalMuted,
+                fontSize = 11.sp
+            )
+        }
+    }
+
+    SectionTitle("مصادر HLS في المعاينة")
+    if (draftSources.isEmpty()) {
+        Text("لا توجد مصادر مضافة بعد.", color = RoyalMuted, fontSize = 12.sp)
+    } else {
+        draftSources.forEach { source ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = RoyalPanel)
+            ) {
+                Row(
+                    modifier = Modifier.padding(13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(source.displayName, color = RoyalGold, fontSize = 14.sp)
+                        Text("HLS • رابط تم التحقق من بنيته", color = RoyalMuted, fontSize = 11.sp)
+                    }
+                    OutlinedButton(onClick = { draftSources.remove(source) }) {
+                        Text("حذف", color = RoyalMuted, fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+    }
+
+    Text(
+        "قبل اعتماد المصدر على الشبكة، سيتحقق الخادم من الرابط وحقوق التوزيع، ثم يربطه بالقناة المختارة.",
+        color = RoyalMuted,
+        fontSize = 12.sp
     )
 }
 
