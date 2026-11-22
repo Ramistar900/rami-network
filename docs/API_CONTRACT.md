@@ -20,6 +20,7 @@ Both SINJAR TV SHOW and ROYAL+ must consume this same response and must not star
 ## Security
 - Viewer function is public but read-only.
 - It calls a service-role-only RPC; the service-role key never leaves Supabase.
+- Private origin URLs stay in `content_sources.source_url`. Viewer responses use only `viewer_url`, which must be a public HTTPS URL without query strings or fragments. The private origin is never returned.
 - The RPC returns only published channels and playback fields required by viewers.
 - Admin writes use the JWT-protected `rami-network-control` function.
 - A stream URL must point to a separately provisioned, authorized HLS output. Supabase is not a video transcoder or HLS origin.
