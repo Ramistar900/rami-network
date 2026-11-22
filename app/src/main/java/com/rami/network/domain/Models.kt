@@ -4,6 +4,7 @@ package com.rami.network.domain
 enum class SourceType {
     HLS,
     MP4,
+    WEBM,
     RTMP,
     SRT
 }
