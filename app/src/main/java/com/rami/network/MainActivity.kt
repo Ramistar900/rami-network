@@ -299,24 +299,6 @@ private data class CommonsTestSample(
 
 private val commonsTestSamples = listOf(
     CommonsTestSample(
-        title = "Forest walking and outdoor cooking – Slovenia",
-        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/e/ec/Forest_walking_and_outdoor_cooking_slovenia.webm",
-        sourcePage = "https://commons.wikimedia.org/wiki/File:Forest_walking_and_outdoor_cooking_slovenia.webm",
-        durationMs = 4_463_000L,
-        sizeLabel = "1 ساعة و14 دقيقة • 3.1 GB",
-        description = "جولة طويلة في غابات سلوفينيا مع مشاهد الطبيعة والطيور والجداول والطهي في الهواء الطلق.",
-        rightsNote = "CC BY 3.0. Attribution: Snicel 69. Source: https://commons.wikimedia.org/wiki/File:Forest_walking_and_outdoor_cooking_slovenia.webm . License: https://creativecommons.org/licenses/by/3.0 . No edits. Wikimedia Commons records reviewer confirmation on 30 December 2025."
-    ),
-    CommonsTestSample(
-        title = "The Most Beautiful Drone Footage – Cross Country Bicycle Tour",
-        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/3/36/The_Most_Beautiful_Drone_Footage_From_Our_Cross_Country_Bicycle_Tour.webm",
-        sourcePage = "https://commons.wikimedia.org/wiki/File:The_Most_Beautiful_Drone_Footage_From_Our_Cross_Country_Bicycle_Tour.webm",
-        durationMs = 951_000L,
-        sizeLabel = "15 دقيقة و51 ثانية • 1.32 GB",
-        description = "مشاهد جوية للطبيعة والمناظر على امتداد رحلة بالدراجة عبر الولايات المتحدة.",
-        rightsNote = "CC BY 3.0. Attribution: Ryan Van Duzer. Source: https://commons.wikimedia.org/wiki/File:The_Most_Beautiful_Drone_Footage_From_Our_Cross_Country_Bicycle_Tour.webm . License: https://creativecommons.org/licenses/by/3.0 . No edits. Wikimedia Commons records reviewer confirmation on 17 July 2024."
-    ),
-    CommonsTestSample(
         title = "50 Kilometers of Brazilian Forest Canopy",
         sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/e/ec/50_Kilometers_of_Brazilian_Forest_Canopy.webm",
         sourcePage = "https://commons.wikimedia.org/wiki/File:50_Kilometers_of_Brazilian_Forest_Canopy.webm",
@@ -342,6 +324,69 @@ private val commonsTestSamples = listOf(
         sizeLabel = "24 دقيقة و13 ثانية • 196.14 MB",
         description = "وثائقي تاريخي علمي عن بدايات استكشاف الفضاء، من أرشيف ناسا.",
         rightsNote = "Public domain in the United States. Creator: NASA. Source: https://commons.wikimedia.org/wiki/File:The_Challenges_of_Outer_Space_NASA_1955.webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Apollo 6 – Video from Command Module",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/a/aa/Apollo_6_video_from_Command_Module.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Apollo_6_video_from_Command_Module.webm",
+        durationMs = 918_000L,
+        sizeLabel = "15 دقيقة و18 ثانية • 35.02 MB",
+        description = "لقطات من نافذة مركبة القيادة خلال مهمة أبولو 6.",
+        rightsNote = "Public domain in the United States. Creator: NASA. Source: https://commons.wikimedia.org/wiki/File:Apollo_6_video_from_Command_Module.webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Orion Soars on First Flight Test",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/1/15/Orion_Soars_on_First_Flight_Test.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Orion_Soars_on_First_Flight_Test.webm",
+        durationMs = 639_000L,
+        sizeLabel = "10 دقائق و39 ثانية • 122.19 MB",
+        description = "الإطلاق الأول لمركبة أوريون في اختبار رحلتها الفضائية.",
+        rightsNote = "Public domain in the United States. Creator: NASA. Commons reviewer confirmed public-domain status on 3 January 2017. Source: https://commons.wikimedia.org/wiki/File:Orion_Soars_on_First_Flight_Test.webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Cosmic Cycles 1 – The Sun",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/d/db/Cosmic_Cycles_1-_The_Sun_%28SVS14313_-_The_Sun_Concert_50mbps%29.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Cosmic_Cycles_1-_The_Sun_(SVS14313_-_The_Sun_Concert_50mbps).webm",
+        durationMs = 640_000L,
+        sizeLabel = "10 دقائق و40 ثانية • 84.14 MB • بلا صوت",
+        description = "تصوير علمي بصري لدورات الشمس والظواهر الشمسية؛ نسخة العرض هذه بلا صوت.",
+        rightsNote = "Public domain in the United States. Creator: NASA Scientific Visualization Studio. Source: https://commons.wikimedia.org/wiki/File:Cosmic_Cycles_1-_The_Sun_(SVS14313_-_The_Sun_Concert_50mbps).webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Gemini XII Mission (1966)",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/0/09/Gemini_XII_Mission_%281966%29.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Gemini_XII_Mission_(1966).webm",
+        durationMs = 1_539_000L,
+        sizeLabel = "25 دقيقة و39 ثانية • 158.48 MB",
+        description = "وثائقي عن مهمة جيميني 12 واختبار تقنيات السير في الفضاء.",
+        rightsNote = "Public domain in the United States. Creator: NASA via Cape Canaveral Space Force Museum. Source: https://commons.wikimedia.org/wiki/File:Gemini_XII_Mission_(1966).webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Legacy of Gemini (1967)",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/d/d9/Legacy_of_Gemini_%281967%29.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Legacy_of_Gemini_(1967).webm",
+        durationMs = 1_657_000L,
+        sizeLabel = "27 دقيقة و37 ثانية • 119.89 MB",
+        description = "وثائقي تاريخي عن إنجازات رحلات جيميني وأثرها على برنامج أبولو.",
+        rightsNote = "Public domain in the United States. Creator: NASA. Source: https://commons.wikimedia.org/wiki/File:Legacy_of_Gemini_(1967).webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Eat Like an Astronaut",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Eat_Like_an_Astronaut.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Eat_Like_an_Astronaut.webm",
+        durationMs = 761_000L,
+        sizeLabel = "12 دقيقة و41 ثانية • 103.09 MB",
+        description = "تجربة وثائقية عن الطعام الذي يتناوله رواد الفضاء وكيفية تحضيره.",
+        rightsNote = "Public domain in the United States. Creator: NASA Johnson. Source: https://commons.wikimedia.org/wiki/File:Eat_Like_an_Astronaut.webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Action Cam Footage from U.S. Spacewalk 41",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/4/44/Action_Cam_Footage_from_U.S._Spacewalk_-41.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Action_Cam_Footage_from_U.S._Spacewalk_-41.webm",
+        durationMs = 621_000L,
+        sizeLabel = "10 دقائق و21 ثانية • 200.22 MB",
+        description = "لقطات من كاميرا مثبتة خلال مهمة سير فضائي على محطة الفضاء الدولية.",
+        rightsNote = "Public domain in the United States. Creator: NASA Johnson. Source: https://commons.wikimedia.org/wiki/File:Action_Cam_Footage_from_U.S._Spacewalk_-41.webm . Do not use NASA logos or imply NASA endorsement."
     )
 )
 
@@ -573,7 +618,7 @@ private fun LibraryContent(token: String) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Text("دفعة الاختبار الأولى • 5 مقاطع", color = RoyalGold,
+            Text("دفعة الاختبار الأولى • 10 مقاطع", color = RoyalGold,
                 fontSize = 17.sp, fontWeight = FontWeight.Bold)
             for (sample in commonsTestSamples) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
