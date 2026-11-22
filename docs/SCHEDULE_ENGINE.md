@@ -1,7 +1,7 @@
 # RAMİ NETWORK schedule engine and administration
 
 ## Runtime
-- Database migration: `20261122023456_rami_network_schedule_engine`.
+- Database migrations: `20261122023456_rami_network_schedule_engine`, `20261122023840_rami_network_admin_schedule_and_playlist_controls`, and `20261122024038_rami_network_create_schedule_block_rpc`.
 - Supabase Cron job: `rami-network-schedule-engine`.
 - Interval: every minute.
 - The job invokes `public.rami_network_process_schedule()` inside Postgres; it does not call an external worker or video provider.
@@ -21,7 +21,7 @@ The authenticated owner control function exposes:
 - `create_schedule_block`, `list_schedule`, `update_schedule_block`, `delete_schedule_block`.
 - `append_playlist_entry`, `list_playlist`, `reorder_playlist_entries`, `remove_playlist_entry`.
 
-Playlist reorder requires the complete ordered list of entry IDs exactly once. Reordering and removal are transactional and positions are compacted to 1..N. All changes are written to the append-only audit table.
+Schedule creation uses a dedicated row-returning RPC rather than the generic admin function. Playlist reorder requires the complete ordered list of entry IDs exactly once. Reordering and removal are transactional and positions are compacted to 1..N. All changes are written to the append-only audit table.
 
 ## Operations and limits
 - Job history is available in `cron.job_run_details`.
