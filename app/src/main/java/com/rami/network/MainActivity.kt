@@ -288,10 +288,71 @@ private fun ChannelsContent(token: String) {
 }
 
 @Composable
+
+private data class CommonsTestSample(
+    val title: String,
+    val sourceUrl: String,
+    val sourcePage: String,
+    val durationMs: Long,
+    val sizeLabel: String,
+    val description: String,
+    val rightsNote: String
+)
+
+private val commonsTestSamples = listOf(
+    CommonsTestSample(
+        title = "Forest walking and outdoor cooking – Slovenia",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/e/ec/Forest_walking_and_outdoor_cooking_slovenia.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Forest_walking_and_outdoor_cooking_slovenia.webm",
+        durationMs = 4_463_000L,
+        sizeLabel = "1 ساعة و14 دقيقة • 3.1 GB",
+        description = "جولة طويلة في غابات سلوفينيا مع مشاهد الطبيعة والطيور والجداول والطهي في الهواء الطلق.",
+        rightsNote = "CC BY 3.0. Attribution: Snicel 69. Source: https://commons.wikimedia.org/wiki/File:Forest_walking_and_outdoor_cooking_slovenia.webm . License: https://creativecommons.org/licenses/by/3.0 . No edits. Wikimedia Commons records reviewer confirmation on 30 December 2025."
+    ),
+    CommonsTestSample(
+        title = "The Most Beautiful Drone Footage – Cross Country Bicycle Tour",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/3/36/The_Most_Beautiful_Drone_Footage_From_Our_Cross_Country_Bicycle_Tour.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:The_Most_Beautiful_Drone_Footage_From_Our_Cross_Country_Bicycle_Tour.webm",
+        durationMs = 951_000L,
+        sizeLabel = "15 دقيقة و51 ثانية • 1.32 GB",
+        description = "مشاهد جوية للطبيعة والمناظر على امتداد رحلة بالدراجة عبر الولايات المتحدة.",
+        rightsNote = "CC BY 3.0. Attribution: Ryan Van Duzer. Source: https://commons.wikimedia.org/wiki/File:The_Most_Beautiful_Drone_Footage_From_Our_Cross_Country_Bicycle_Tour.webm . License: https://creativecommons.org/licenses/by/3.0 . No edits. Wikimedia Commons records reviewer confirmation on 17 July 2024."
+    ),
+    CommonsTestSample(
+        title = "50 Kilometers of Brazilian Forest Canopy",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/e/ec/50_Kilometers_of_Brazilian_Forest_Canopy.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:50_Kilometers_of_Brazilian_Forest_Canopy.webm",
+        durationMs = 602_000L,
+        sizeLabel = "10 دقائق و2 ثانية • 86.28 MB",
+        description = "تصوير علمي لامتداد بيانات الليدار فوق الغابات المطيرة البرازيلية.",
+        rightsNote = "Public domain in the United States. Creator: NASA Scientific Visualization Studio. Source: https://commons.wikimedia.org/wiki/File:50_Kilometers_of_Brazilian_Forest_Canopy.webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "Universe (1976)",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/0/00/Universe_%281976%29.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:Universe_(1976).webm",
+        durationMs = 1_612_000L,
+        sizeLabel = "26 دقيقة و52 ثانية • 38.06 MB",
+        description = "فيلم علمي وثائقي عن الكون من إنتاج وكالة ناسا، بتعليق صوتي باللغة الإنجليزية.",
+        rightsNote = "Public domain in the United States. Creator: National Aeronautics and Space Administration. Source: https://commons.wikimedia.org/wiki/File:Universe_(1976).webm . Do not use NASA logos or imply NASA endorsement."
+    ),
+    CommonsTestSample(
+        title = "The Challenges of Outer Space – NASA 1955",
+        sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/6/66/The_Challenges_of_Outer_Space_NASA_1955.webm",
+        sourcePage = "https://commons.wikimedia.org/wiki/File:The_Challenges_of_Outer_Space_NASA_1955.webm",
+        durationMs = 1_453_000L,
+        sizeLabel = "24 دقيقة و13 ثانية • 196.14 MB",
+        description = "وثائقي تاريخي علمي عن بدايات استكشاف الفضاء، من أرشيف ناسا.",
+        rightsNote = "Public domain in the United States. Creator: NASA. Source: https://commons.wikimedia.org/wiki/File:The_Challenges_of_Outer_Space_NASA_1955.webm . Do not use NASA logos or imply NASA endorsement."
+    )
+)
+
 private fun LibraryContent(token: String) {
     val scope = rememberCoroutineScope()
     var sources by remember { mutableStateOf(JSONArray()) }
     var mediaItems by remember { mutableStateOf(JSONArray()) }
+    var confirmCommonsImport by remember { mutableStateOf(false) }
+    var sourceType by rememberSaveable { mutableStateOf("hls") }
     var displayName by rememberSaveable { mutableStateOf("") }
     var sourceUrl by rememberSaveable { mutableStateOf("") }
     var rightsNote by rememberSaveable { mutableStateOf("") }
@@ -311,15 +372,240 @@ private fun LibraryContent(token: String) {
             message = "تم تحديث المصادر ومكتبة الفيديوهات."
         }.onFailure { message = it.message ?: "تعذر تحميل المكتبة." }
     }
+
+    fun importCommonsLibrary() {
+        if (busy) return
+        busy = true
+        scope.launch {
+            var completed = 0
+            try {
+                val channelResponse = AdminApi.call(token, "list_channels")
+                val channelArray = channelResponse.optJSONArray("data") ?: JSONArray()
+                var vodChannel: JSONObject? = null
+                for (index in 0 until channelArray.length()) {
+                    val candidate = channelArray.optJSONObject(index) ?: continue
+                    if (candidate.optString("slug") == "rami-vod-test") {
+                        vodChannel = candidate
+                        break
+                    }
+                }
+                if (vodChannel == null) {
+                    vodChannel = AdminApi.call(token, "create_channel", JSONObject()
+                        .put("slug", "rami-vod-test")
+                        .put("name", "RAMI VOD TEST")
+                        .put("playback_mode", "scheduled"))
+                        .optJSONObject("data")
+                        ?: throw IllegalStateException("تعذر إنشاء قناة اختبار الفيديو.")
+                }
+                val channelId = vodChannel.optString("id")
+                if (channelId.isBlank()) throw IllegalStateException("معرّف قناة VOD غير صالح.")
+
+                val sourceArray = AdminApi.call(token, "list_sources")
+                    .optJSONArray("data") ?: JSONArray()
+                val mediaArray = AdminApi.call(token, "list_media")
+                    .optJSONArray("data") ?: JSONArray()
+                val playlistArray = AdminApi.call(token, "list_playlist",
+                    JSONObject().put("channel_id", channelId))
+                    .optJSONArray("data") ?: JSONArray()
+
+                for (sample in commonsTestSamples) {
+                    message = "جارٍ تجهيز: " + sample.title
+                    var source: JSONObject? = null
+                    for (index in 0 until sourceArray.length()) {
+                        val candidate = sourceArray.optJSONObject(index) ?: continue
+                        if (candidate.optString("source_url") == sample.sourceUrl) {
+                            source = candidate
+                            break
+                        }
+                    }
+                    if (source == null) {
+                        source = AdminApi.call(token, "create_source", JSONObject()
+                            .put("display_name", sample.title)
+                            .put("source_kind", "external_url")
+                            .put("source_type", "webm")
+                            .put("source_url", sample.sourceUrl)
+                            .put("rights_note", sample.rightsNote))
+                            .optJSONObject("data")
+                            ?: throw IllegalStateException("تعذر تسجيل مصدر: " + sample.title)
+                        sourceArray.put(source)
+                    }
+
+                    val sourceId = source.optString("id")
+                    if (sourceId.isBlank()) throw IllegalStateException("معرّف المصدر مفقود.")
+                    val rightsStatus = source.optString("rights_status")
+                    if (rightsStatus == "rejected") {
+                        throw IllegalStateException("المصدر مرفوض ولا يمكن إدخاله: " + sample.title)
+                    }
+                    if (rightsStatus != "approved") {
+                        source = AdminApi.call(token, "set_source_rights", JSONObject()
+                            .put("source_id", sourceId)
+                            .put("rights_status", "approved")
+                            .put("rights_note", sample.rightsNote))
+                            .optJSONObject("data") ?: source
+                    }
+                    if (source.optString("viewer_url") != sample.sourceUrl) {
+                        source = AdminApi.call(token, "set_source_viewer_url", JSONObject()
+                            .put("source_id", sourceId)
+                            .put("viewer_url", sample.sourceUrl))
+                            .optJSONObject("data") ?: source
+                    }
+
+                    var mediaId = ""
+                    for (index in 0 until mediaArray.length()) {
+                        val candidate = mediaArray.optJSONObject(index) ?: continue
+                        if (candidate.optString("source_id") == sourceId &&
+                            candidate.optString("title") == sample.title) {
+                            mediaId = candidate.optString("id")
+                            break
+                        }
+                    }
+                    if (mediaId.isBlank()) {
+                        val media = AdminApi.call(token, "create_media", JSONObject()
+                            .put("source_id", sourceId)
+                            .put("title", sample.title)
+                            .put("description", sample.description + " المصدر والترخيص: " + sample.sourcePage)
+                            .put("duration_ms", sample.durationMs))
+                            .optJSONObject("data")
+                            ?: throw IllegalStateException("تعذر إضافة الفيديو: " + sample.title)
+                        mediaArray.put(media)
+                        mediaId = media.optString("id")
+                    }
+
+                    var alreadyInPlaylist = false
+                    for (index in 0 until playlistArray.length()) {
+                        val entry = playlistArray.optJSONObject(index) ?: continue
+                        if (entry.optString("media_item_id") == mediaId) {
+                            alreadyInPlaylist = true
+                            break
+                        }
+                    }
+                    if (!alreadyInPlaylist) {
+                        val entry = AdminApi.call(token, "append_playlist_entry", JSONObject()
+                            .put("channel_id", channelId)
+                            .put("media_item_id", mediaId))
+                            .optJSONObject("data")
+                            ?: throw IllegalStateException("تعذر إدخال الفيديو في قائمة التشغيل.")
+                        playlistArray.put(entry)
+                    }
+                    completed++
+                }
+
+                val scheduleArray = AdminApi.call(token, "list_schedule",
+                    JSONObject().put("channel_id", channelId))
+                    .optJSONArray("data") ?: JSONArray()
+                val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                    .apply { timeZone = TimeZone.getTimeZone("UTC") }
+                val now = Date()
+                val nowKey = utcFormat.format(now).take(19)
+                var hasActivePlaylist = false
+                for (index in 0 until scheduleArray.length()) {
+                    val block = scheduleArray.optJSONObject(index) ?: continue
+                    val startKey = block.optString("starts_at").take(19)
+                    val endKey = block.optString("ends_at").take(19)
+                    if (block.optString("block_type") == "playlist" &&
+                        block.optBoolean("is_enabled") &&
+                        startKey.isNotBlank() && endKey.isNotBlank() &&
+                        startKey <= nowKey && endKey > nowKey) {
+                        hasActivePlaylist = true
+                        break
+                    }
+                }
+                if (!hasActivePlaylist) {
+                    val endCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        time = now
+                        add(Calendar.DAY_OF_YEAR, 30)
+                    }
+                    AdminApi.call(token, "create_schedule_block", JSONObject()
+                        .put("channel_id", channelId)
+                        .put("block_type", "playlist")
+                        .put("starts_at", utcFormat.format(now))
+                        .put("ends_at", utcFormat.format(endCalendar.time))
+                        .put("priority", 100))
+                }
+                AdminApi.call(token, "update_channel", JSONObject()
+                    .put("channel_id", channelId)
+                    .put("playback_mode", "scheduled")
+                    .put("is_enabled", true))
+                loadSources()
+                message = "اكتمل تجهيز " + completed + " مواد في قناة RAMI VOD TEST. ستظهر للمشاهدين بعد تحديث حالة الجدولة خلال دقيقة تقريباً."
+            } catch (error: Exception) {
+                loadSources()
+                message = "توقف الاستيراد بعد " + completed + "/" + commonsTestSamples.size +
+                    " مواد: " + (error.message ?: "خطأ غير معروف")
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    if (confirmCommonsImport) {
+        AlertDialog(
+            onDismissRequest = { confirmCommonsImport = false },
+            title = { Text("استيراد مكتبة RAMİ TV التجريبية") },
+            text = {
+                Text("سيُنشأ أو يُحدّث مسار RAMI VOD TEST المستقل، وتُضاف " +
+                    commonsTestSamples.size + " مواد طويلة إلى قائمته وتُنشر القناة للاختبار. " +
+                    "لن تتغير قناة RAMI TEST LIVE. بعض الملفات كبيرة جداً وتُبث مباشرة من Wikimedia Commons.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmCommonsImport = false
+                    importCommonsLibrary()
+                }) { Text("ابدأ الاستيراد", color = RoyalGold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCommonsImport = false }) {
+                    Text("إلغاء", color = RoyalMuted)
+                }
+            },
+            containerColor = RoyalPanel,
+            titleContentColor = RoyalGold,
+            textContentColor = RoyalMuted
+        )
+    }
+
     LaunchedEffect(token) { loadSources() }
+
+    SectionTitle("مكتبة Wikimedia Commons التجريبية")
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text("دفعة الاختبار الأولى • 5 مقاطع", color = RoyalGold,
+                fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            for (sample in commonsTestSamples) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(sample.title, color = Color(0xFFF5F1E8), fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(sample.sizeLabel, color = RoyalMuted, fontSize = 10.sp)
+                }
+            }
+            Text("المقاطع تُشغّل مباشرة من Wikimedia Commons ولا تُخزّن في Supabase. " +
+                "ملفا الغابة والطيران الجوي كبيران جداً؛ يفضّل الاختبار عبر Wi-Fi.",
+                color = RoyalMuted, fontSize = 11.sp)
+            Button(onClick = { confirmCommonsImport = true },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = RoyalGold, contentColor = RoyalBlack)
+            ) { Text(if (busy) "جارٍ تجهيز المكتبة..." else "استيراد المقاطع وإنشاء قناة VOD TEST") }
+        }
+    }
+
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("إضافة مصدر HLS", color = RoyalGold, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text("إضافة مصدر HLS أو فيديو WebM/MP4", color = RoyalGold, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = sourceType == "hls", onClick = { sourceType = "hls" },
+                    label = { Text("HLS") })
+                FilterChip(selected = sourceType == "mp4", onClick = { sourceType = "mp4" },
+                    label = { Text("MP4") })
+                FilterChip(selected = sourceType == "webm", onClick = { sourceType = "webm" },
+                    label = { Text("WebM") })
+            }
             OutlinedTextField(displayName, { displayName = it }, Modifier.fillMaxWidth(),
                 label = { Text("اسم المصدر") }, singleLine = true)
             OutlinedTextField(sourceUrl, { sourceUrl = it.trim() }, Modifier.fillMaxWidth(),
-                label = { Text("رابط HLS بصيغة HTTPS") }, singleLine = true)
+                label = { Text("رابط " + sourceType.uppercase(Locale.US) + " بصيغة HTTPS") }, singleLine = true)
             OutlinedTextField(rightsNote, { rightsNote = it }, Modifier.fillMaxWidth(),
                 label = { Text("بيان حقوق التوزيع أو الإذن") }, minLines = 2)
             Button(onClick = {
@@ -327,7 +613,7 @@ private fun LibraryContent(token: String) {
                 scope.launch {
                     runCatching { AdminApi.call(token, "create_source", JSONObject()
                         .put("display_name", displayName.trim()).put("source_kind", "external_url")
-                        .put("source_type", "hls").put("source_url", sourceUrl.trim())
+                        .put("source_type", sourceType).put("source_url", sourceUrl.trim())
                         .put("rights_note", rightsNote.trim())) }
                         .onSuccess {
                             displayName = ""; sourceUrl = ""; rightsNote = ""
@@ -379,7 +665,7 @@ private fun LibraryContent(token: String) {
             OutlinedTextField(publicSourceId, { publicSourceId = it.trim() }, Modifier.fillMaxWidth(),
                 label = { Text("معرّف المصدر المعتمد UUID") }, singleLine = true)
             OutlinedTextField(publicViewerUrl, { publicViewerUrl = it.trim() }, Modifier.fillMaxWidth(),
-                label = { Text("رابط HLS/MP4 عام HTTPS دون رموز وصول") }, singleLine = true)
+                label = { Text("رابط HLS/MP4/WebM عام HTTPS دون رموز وصول") }, singleLine = true)
             Button(onClick = {
                 scope.launch {
                     runCatching {
