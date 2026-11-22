@@ -43,7 +43,7 @@ object AdminApi {
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
             setRequestProperty("Accept", "application/json")
             setRequestProperty("apikey", publishableKey)
-            setRequestProperty("Authorization", "Bearer " + (accessToken ?: publishableKey))
+            if (accessToken != null) setRequestProperty("Authorization", "Bearer " + accessToken)
         }
         try {
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
