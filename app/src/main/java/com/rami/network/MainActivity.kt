@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -86,7 +87,8 @@ private fun LoginScreen(onSignedIn: (String) -> Unit) {
                     OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(),
                         label = { Text("البريد الإلكتروني") }, singleLine = true)
                     OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(),
-                        label = { Text("كلمة المرور") }, singleLine = true)
+                        label = { Text("كلمة المرور") }, singleLine = true,
+                        visualTransformation = PasswordVisualTransformation())
                     Button(
                         onClick = {
                             if (email.isBlank() || password.isBlank()) message = "أدخل البريد وكلمة المرور."
