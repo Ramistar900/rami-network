@@ -287,8 +287,6 @@ private fun ChannelsContent(token: String) {
     }
 }
 
-@Composable
-
 private data class CommonsTestSample(
     val title: String,
     val sourceUrl: String,
@@ -347,6 +345,7 @@ private val commonsTestSamples = listOf(
     )
 )
 
+@Composable
 private fun LibraryContent(token: String) {
     val scope = rememberCoroutineScope()
     var sources by remember { mutableStateOf(JSONArray()) }
