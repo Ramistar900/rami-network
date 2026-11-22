@@ -464,7 +464,7 @@ private fun ScheduleContent(token: String) {
             OutlinedTextField(mode, { mode = it.trim() }, Modifier.fillMaxWidth(),
                 label = { Text("النمط: live أو playlist أو stopped") }, singleLine = true)
             OutlinedTextField(streamUrl, { streamUrl = it.trim() }, Modifier.fillMaxWidth(),
-                label = { Text("رابط HLS النهائي للبث المباشر") }, singleLine = true)
+                label = { Text("رابط HLS العام النهائي HTTPS (دون رموز وصول)") }, singleLine = true)
             Button(onClick = {
                 scope.launch {
                     val anchor = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
