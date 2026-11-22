@@ -1,4 +1,4 @@
-# RAMİ NETWORK schedule engine
+# RAMİ NETWORK schedule engine and administration
 
 ## Runtime
 - Database migration: `20261122023456_rami_network_schedule_engine`.
@@ -15,6 +15,13 @@
 When blocks overlap, the block with the greatest `priority` wins. If priorities match, the later `starts_at` wins, followed by a stable ID tie-break. A block is active when `starts_at <= server_time < ends_at`.
 
 When the active block changes, the playback sequence and schedule version increment. If no block remains after a scheduled block, the channel is stopped. If the selected source or media item is not approved and publicly playable, the channel remains stopped rather than exposing a private origin.
+
+## Administration API
+The authenticated owner control function exposes:
+- `create_schedule_block`, `list_schedule`, `update_schedule_block`, `delete_schedule_block`.
+- `append_playlist_entry`, `list_playlist`, `reorder_playlist_entries`, `remove_playlist_entry`.
+
+Playlist reorder requires the complete ordered list of entry IDs exactly once. Reordering and removal are transactional and positions are compacted to 1..N. All changes are written to the append-only audit table.
 
 ## Operations and limits
 - Job history is available in `cron.job_run_details`.
