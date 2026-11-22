@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -455,47 +456,262 @@ private fun ScheduleContent(token: String) {
     val scope = rememberCoroutineScope()
     var channelId by rememberSaveable { mutableStateOf("") }
     var mediaId by rememberSaveable { mutableStateOf("") }
+    var sourceId by rememberSaveable { mutableStateOf("") }
     var mode by rememberSaveable { mutableStateOf("live") }
     var streamUrl by rememberSaveable { mutableStateOf("") }
-    var message by remember { mutableStateOf("اختر قناة مسجلة وأدخل بيانات البث عند توفرها.") }
-    var playlistSummary by remember { mutableStateOf("") }
+    var blockType by rememberSaveable { mutableStateOf("playlist") }
+    var startsAt by rememberSaveable {
+        mutableStateOf(SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date()))
+    }
+    var endsAt by rememberSaveable {
+        mutableStateOf(SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .format(Calendar.getInstance().apply { add(Calendar.HOUR_OF_DAY, 1) }.time))
+    }
+    var priority by rememberSaveable { mutableStateOf("100") }
+    var editingBlockId by rememberSaveable { mutableStateOf("") }
+    var editStartsAt by rememberSaveable { mutableStateOf("") }
+    var editEndsAt by rememberSaveable { mutableStateOf("") }
+    var editPriority by rememberSaveable { mutableStateOf("100") }
+    var editEnabled by rememberSaveable { mutableStateOf(true) }
+    var message by remember { mutableStateOf("أدخل معرّف القناة لإدارة قوائمها وجدولها المركزي.") }
+    var playlistEntries by remember { mutableStateOf(JSONArray()) }
+    var scheduleBlocks by remember { mutableStateOf(JSONArray()) }
+
+    fun reloadPlaylist() {
+        scope.launch {
+            runCatching {
+                AdminApi.call(token, "list_playlist", JSONObject().put("channel_id", channelId))
+            }.onSuccess {
+                playlistEntries = it.optJSONArray("data") ?: JSONArray()
+                message = "تم تحديث قائمة التشغيل."
+            }.onFailure { message = it.message ?: "تعذر تحميل قائمة التشغيل." }
+        }
+    }
+
+    fun reloadSchedule() {
+        scope.launch {
+            runCatching {
+                AdminApi.call(token, "list_schedule", JSONObject().put("channel_id", channelId))
+            }.onSuccess {
+                scheduleBlocks = it.optJSONArray("data") ?: JSONArray()
+                message = "تم تحديث جدول القناة."
+            }.onFailure { message = it.message ?: "تعذر تحميل جدول القناة." }
+        }
+    }
+
+    fun reorderPlaylist(from: Int, to: Int) {
+        if (to !in 0 until playlistEntries.length()) return
+        val ids = mutableListOf<String>()
+        for (index in 0 until playlistEntries.length()) {
+            ids += playlistEntries.optJSONObject(index)?.optString("id").orEmpty()
+        }
+        if (ids.any { it.isBlank() }) return
+        val moved = ids.removeAt(from)
+        ids.add(to, moved)
+        val orderedIds = JSONArray()
+        ids.forEach { orderedIds.put(it) }
+        scope.launch {
+            runCatching {
+                AdminApi.call(token, "reorder_playlist_entries",
+                    JSONObject().put("channel_id", channelId).put("entry_ids", orderedIds))
+            }.onSuccess {
+                playlistEntries = it.optJSONArray("data") ?: JSONArray()
+                message = "تم حفظ الترتيب الجديد للقائمة."
+            }.onFailure { message = it.message ?: "تعذر إعادة ترتيب القائمة." }
+        }
+    }
+
+    SectionTitle("قائمة التشغيل المتزامنة")
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("حالة البث المركزية", color = RoyalGold, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text("إدارة عناصر القناة", color = RoyalGold, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             OutlinedTextField(channelId, { channelId = it.trim() }, Modifier.fillMaxWidth(),
                 label = { Text("معرّف القناة UUID") }, singleLine = true)
             OutlinedTextField(mediaId, { mediaId = it.trim() }, Modifier.fillMaxWidth(),
-                label = { Text("معرّف الفيديو لإضافته إلى القائمة UUID") }, singleLine = true)
+                label = { Text("معرّف الفيديو UUID") }, singleLine = true)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     scope.launch {
                         runCatching {
-                            AdminApi.call(token, "append_playlist_entry", JSONObject()
-                                .put("channel_id", channelId).put("media_item_id", mediaId))
+                            AdminApi.call(token, "append_playlist_entry",
+                                JSONObject().put("channel_id", channelId).put("media_item_id", mediaId))
                         }.onSuccess {
-                            val list = AdminApi.call(token, "list_playlist", JSONObject().put("channel_id", channelId))
-                                .optJSONArray("data") ?: JSONArray()
-                            playlistSummary = "عدد عناصر القائمة: " + list.length()
-                            message = "تمت إضافة الفيديو إلى قائمة القناة."
-                        }.onFailure { message = it.message ?: "تعذر إضافة الفيديو إلى القائمة." }
+                            reloadPlaylist()
+                            message = "تمت إضافة الفيديو إلى القائمة."
+                        }.onFailure { message = it.message ?: "تعذرت إضافة الفيديو." }
                     }
                 }, enabled = channelId.isNotBlank() && mediaId.isNotBlank()) {
-                    Text("إضافة للقائمة", color = RoyalGold)
+                    Text("إضافة فيديو", color = RoyalGold)
                 }
-                OutlinedButton(onClick = {
+                OutlinedButton(onClick = { reloadPlaylist() }, enabled = channelId.isNotBlank()) {
+                    Text("تحديث القائمة", color = RoyalGold)
+                }
+            }
+            if (playlistEntries.length() == 0) {
+                Text("لا توجد عناصر محمّلة في القائمة.", color = RoyalMuted, fontSize = 12.sp)
+            }
+            for (index in 0 until playlistEntries.length()) {
+                val entry = playlistEntries.optJSONObject(index) ?: continue
+                val entryId = entry.optString("id")
+                val media = entry.optJSONObject("media")
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = RoyalBlack)) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("${index + 1}. " + (media?.optString("title") ?: entry.optString("media_item_id")),
+                            color = RoyalGold, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("معرّف العنصر: $entryId", color = RoyalMuted, fontSize = 10.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(onClick = { reorderPlaylist(index, index - 1) },
+                                enabled = index > 0) { Text("↑", color = RoyalGold) }
+                            OutlinedButton(onClick = { reorderPlaylist(index, index + 1) },
+                                enabled = index < playlistEntries.length() - 1) { Text("↓", color = RoyalGold) }
+                            OutlinedButton(onClick = {
+                                scope.launch {
+                                    runCatching {
+                                        AdminApi.call(token, "remove_playlist_entry",
+                                            JSONObject().put("channel_id", channelId).put("entry_id", entryId))
+                                    }.onSuccess {
+                                        playlistEntries = it.optJSONArray("data") ?: JSONArray()
+                                        message = "تم حذف العنصر وإعادة ترقيم القائمة."
+                                    }.onFailure { message = it.message ?: "تعذر حذف العنصر." }
+                                }
+                            }) { Text("حذف", color = RoyalGold) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    SectionTitle("الجدولة التلقائية")
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text("إنشاء فترة بث", color = RoyalGold, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            OutlinedTextField(blockType, { blockType = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("النوع: playlist أو live_source أو media_item") }, singleLine = true)
+            OutlinedTextField(startsAt, { startsAt = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("بداية الفترة UTC (ISO-8601)") }, singleLine = true)
+            OutlinedTextField(endsAt, { endsAt = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("نهاية الفترة UTC (ISO-8601)") }, singleLine = true)
+            OutlinedTextField(priority, { priority = it.filter { ch -> ch.isDigit() || ch == '-' } },
+                Modifier.fillMaxWidth(), label = { Text("الأولوية (الأعلى يفوز)") }, singleLine = true)
+            if (blockType == "live_source") {
+                OutlinedTextField(sourceId, { sourceId = it.trim() }, Modifier.fillMaxWidth(),
+                    label = { Text("معرّف مصدر البث المعتمد UUID") }, singleLine = true)
+            }
+            if (blockType == "media_item") {
+                OutlinedTextField(mediaId, { mediaId = it.trim() }, Modifier.fillMaxWidth(),
+                    label = { Text("معرّف الفيديو المعتمد UUID") }, singleLine = true)
+            }
+            Button(onClick = {
+                scope.launch {
+                    val payload = JSONObject()
+                        .put("channel_id", channelId)
+                        .put("block_type", blockType)
+                        .put("starts_at", startsAt)
+                        .put("ends_at", endsAt)
+                        .put("priority", priority.toIntOrNull() ?: 100)
+                    if (blockType == "live_source") payload.put("source_id", sourceId)
+                    if (blockType == "media_item") payload.put("media_item_id", mediaId)
+                    runCatching { AdminApi.call(token, "create_schedule_block", payload) }
+                        .onSuccess {
+                            reloadSchedule()
+                            message = "تمت إضافة فترة الجدولة."
+                        }
+                        .onFailure { message = it.message ?: "تعذر إنشاء فترة الجدولة." }
+                }
+            }, enabled = channelId.isNotBlank() && blockType in setOf("playlist", "live_source", "media_item") &&
+                startsAt.isNotBlank() && endsAt.isNotBlank() &&
+                (blockType != "live_source" || sourceId.isNotBlank()) &&
+                (blockType != "media_item" || mediaId.isNotBlank()),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = RoyalGold, contentColor = RoyalBlack)
+            ) { Text("إضافة إلى جدول القناة") }
+            OutlinedButton(onClick = { reloadSchedule() }, enabled = channelId.isNotBlank()) {
+                Text("تحميل جدول القناة", color = RoyalGold)
+            }
+            if (scheduleBlocks.length() == 0) {
+                Text("لا توجد فترات مجدولة محمّلة.", color = RoyalMuted, fontSize = 12.sp)
+            }
+            for (index in 0 until scheduleBlocks.length()) {
+                val block = scheduleBlocks.optJSONObject(index) ?: continue
+                val blockId = block.optString("id")
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = RoyalBlack)) {
+                    Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(block.optString("block_type"), color = RoyalGold, fontWeight = FontWeight.Bold)
+                        Text(block.optString("starts_at") + " → " + block.optString("ends_at"),
+                            color = RoyalMuted, fontSize = 10.sp)
+                        Text("الأولوية: " + block.optString("priority") +
+                            " | مفعّل: " + (if (block.optBoolean("is_enabled")) "نعم" else "لا"),
+                            color = RoyalMuted, fontSize = 11.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = {
+                                editingBlockId = blockId
+                                editStartsAt = block.optString("starts_at")
+                                editEndsAt = block.optString("ends_at")
+                                editPriority = block.optString("priority", "100")
+                                editEnabled = block.optBoolean("is_enabled", true)
+                            }) { Text("تعديل", color = RoyalGold) }
+                            OutlinedButton(onClick = {
+                                scope.launch {
+                                    runCatching {
+                                        AdminApi.call(token, "delete_schedule_block",
+                                            JSONObject().put("channel_id", channelId).put("block_id", blockId))
+                                    }.onSuccess {
+                                        if (editingBlockId == blockId) editingBlockId = ""
+                                        reloadSchedule()
+                                        message = "تم حذف فترة الجدولة."
+                                    }.onFailure { message = it.message ?: "تعذر حذف الفترة." }
+                                }
+                            }) { Text("حذف", color = RoyalGold) }
+                        }
+                    }
+                }
+            }
+            if (editingBlockId.isNotBlank()) {
+                Divider(color = RoyalLine)
+                Text("تعديل الفترة المحددة", color = RoyalGold, fontWeight = FontWeight.Bold)
+                OutlinedTextField(editStartsAt, { editStartsAt = it.trim() }, Modifier.fillMaxWidth(),
+                    label = { Text("بداية الفترة UTC") }, singleLine = true)
+                OutlinedTextField(editEndsAt, { editEndsAt = it.trim() }, Modifier.fillMaxWidth(),
+                    label = { Text("نهاية الفترة UTC") }, singleLine = true)
+                OutlinedTextField(editPriority, { editPriority = it.filter { ch -> ch.isDigit() || ch == '-' } },
+                    Modifier.fillMaxWidth(), label = { Text("الأولوية") }, singleLine = true)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = editEnabled, onCheckedChange = { editEnabled = it })
+                    Text("الفترة مفعّلة", color = RoyalMuted, fontSize = 12.sp)
+                }
+                Button(onClick = {
                     scope.launch {
                         runCatching {
-                            AdminApi.call(token, "list_playlist", JSONObject().put("channel_id", channelId))
+                            AdminApi.call(token, "update_schedule_block", JSONObject()
+                                .put("channel_id", channelId).put("block_id", editingBlockId)
+                                .put("starts_at", editStartsAt).put("ends_at", editEndsAt)
+                                .put("priority", editPriority.toIntOrNull() ?: 100)
+                                .put("is_enabled", editEnabled))
                         }.onSuccess {
-                            val list = it.optJSONArray("data") ?: JSONArray()
-                            playlistSummary = "عدد عناصر القائمة: " + list.length()
-                            message = "تم تحميل قائمة القناة."
-                        }.onFailure { message = it.message ?: "تعذر تحميل القائمة." }
+                            editingBlockId = ""
+                            reloadSchedule()
+                            message = "تم حفظ تعديلات فترة الجدولة."
+                        }.onFailure { message = it.message ?: "تعذر تعديل فترة الجدولة." }
                     }
-                }, enabled = channelId.isNotBlank()) { Text("عرض القائمة", color = RoyalGold) }
+                }, modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = RoyalGold, contentColor = RoyalBlack)
+                ) { Text("حفظ التعديلات") }
             }
-            if (playlistSummary.isNotBlank()) Text(playlistSummary, color = RoyalMuted, fontSize = 12.sp)
+        }
+    }
+
+    SectionTitle("التحكم اليدوي بالبث")
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text("حالة البث المركزية", color = RoyalGold, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             OutlinedTextField(mode, { mode = it.trim() }, Modifier.fillMaxWidth(),
                 label = { Text("النمط: live أو playlist أو stopped") }, singleLine = true)
             OutlinedTextField(streamUrl, { streamUrl = it.trim() }, Modifier.fillMaxWidth(),
@@ -518,7 +734,7 @@ private fun ScheduleContent(token: String) {
             Text(message, color = RoyalMuted, fontSize = 12.sp)
         }
     }
-    Text("هذا يحدّث توقيت وحالة التشغيل المركزية فقط. لا ينشئ خادم فيديو أو يحوّل MP4 إلى HLS؛ يلزم رابط HLS نهائي من مزود بث مرخّص.",
+    Text("الجدولة تعمل تلقائياً كل دقيقة من توقيت الخادم. لا ينشئ هذا المحرك خادم فيديو أو يحوّل MP4 إلى HLS؛ يلزم رابط مشاهدة عام معتمد، ومخرج HLS فعلي للبث المباشر.",
         color = RoyalMuted, fontSize = 12.sp)
 }
 
