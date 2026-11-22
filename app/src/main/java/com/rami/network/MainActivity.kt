@@ -292,6 +292,8 @@ private fun LibraryContent(token: String) {
     var displayName by rememberSaveable { mutableStateOf("") }
     var sourceUrl by rememberSaveable { mutableStateOf("") }
     var rightsNote by rememberSaveable { mutableStateOf("") }
+    var publicSourceId by rememberSaveable { mutableStateOf("") }
+    var publicViewerUrl by rememberSaveable { mutableStateOf("") }
     var mediaTitle by rememberSaveable { mutableStateOf("") }
     var mediaSourceId by rememberSaveable { mutableStateOf("") }
     var durationSeconds by rememberSaveable { mutableStateOf("1800") }
@@ -350,6 +352,11 @@ private fun LibraryContent(token: String) {
                 Text(source.optString("display_name"), color = RoyalGold, fontSize = 14.sp)
                 Text("الحالة: " + source.optString("rights_status"), color = RoyalMuted, fontSize = 11.sp)
                 Text("معرّف المصدر: " + id, color = RoyalMuted, fontSize = 10.sp)
+                Text(
+                    if (source.optString("viewer_url").isBlank()) "رابط المشاهدة العام غير مضبوط"
+                    else "رابط المشاهدة العام جاهز",
+                    color = RoyalMuted, fontSize = 10.sp
+                )
                 if (!approved) OutlinedButton(onClick = {
                     scope.launch {
                         runCatching { AdminApi.call(token, "set_source_rights", JSONObject()
@@ -362,6 +369,32 @@ private fun LibraryContent(token: String) {
             }
         }
     }
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("رابط المشاهدة العام", color = RoyalGold, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            OutlinedTextField(publicSourceId, { publicSourceId = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("معرّف المصدر المعتمد UUID") }, singleLine = true)
+            OutlinedTextField(publicViewerUrl, { publicViewerUrl = it.trim() }, Modifier.fillMaxWidth(),
+                label = { Text("رابط HLS/MP4 عام HTTPS دون رموز وصول") }, singleLine = true)
+            Button(onClick = {
+                scope.launch {
+                    runCatching {
+                        AdminApi.call(token, "set_source_viewer_url", JSONObject()
+                            .put("source_id", publicSourceId).put("viewer_url", publicViewerUrl))
+                    }.onSuccess {
+                        publicViewerUrl = ""
+                        message = "تم حفظ رابط المشاهدة العام."
+                        loadSources()
+                    }.onFailure { message = it.message ?: "تعذر حفظ رابط المشاهدة." }
+                }
+            }, enabled = publicSourceId.isNotBlank() && publicViewerUrl.startsWith("https://"),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = RoyalGold, contentColor = RoyalBlack)
+            ) { Text("حفظ رابط المشاهدة") }
+        }
+    }
+
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = RoyalPanel)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
