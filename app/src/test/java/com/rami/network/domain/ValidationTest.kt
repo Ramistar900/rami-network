@@ -31,6 +31,13 @@ class ValidationTest {
     }
 
     @Test
+    fun externalWebmSourceRequiresHttpsAndWebmExtension() {
+        assertFalse(Validation.isValidSourceUrl("http://cdn.example.com/a.webm", SourceType.WEBM))
+        assertFalse(Validation.isValidSourceUrl("https://cdn.example.com/a.mp4", SourceType.WEBM))
+        assertTrue(Validation.isValidSourceUrl("https://upload.wikimedia.org/video/a.webm", SourceType.WEBM))
+    }
+
+    @Test
     fun rejectsCredentialsFragmentsAndNonStandardHttpsPorts() {
         assertFalse(Validation.isValidSourceUrl("https://user:pass@cdn.example.com/a.m3u8", SourceType.HLS))
         assertFalse(Validation.isValidSourceUrl("https://cdn.example.com:8443/a.m3u8", SourceType.HLS))
