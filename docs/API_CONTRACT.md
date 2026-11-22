@@ -16,8 +16,8 @@ Returns only enabled, non-archived channels. It never returns source URLs, right
 Returns the server timestamp and monotonically increasing sequence. Supported playback modes:
 
 - `live`: returns the final public HLS output URL.
-- `playlist`: returns the shared playlist anchor, current item, media URL, and calculated position. Viewers must use the server timeline rather than starting their own clock.
-- `scheduled`: returns the currently scheduled single media item, its public media URL, source type, duration, position, and the schedule block start/end timestamps.
+- `playlist`: returns the shared playlist anchor, current item, media URL, calculated position, and public attribution fields (`description`, `rightsNote`). Viewers must use the server timeline rather than starting their own clock.
+- `scheduled`: returns the currently scheduled single media item, its public media URL, source type, duration, position, schedule block start/end timestamps, and public attribution fields (`description`, `rightsNote`).
 - `stopped`: no active playback is scheduled.
 
 The schedule engine selects the active block using the highest priority first, then the most recent start time. It evaluates schedules once per minute. A block transition increments the channel sequence; unchanged blocks do not reset playback.
