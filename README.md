@@ -1,39 +1,50 @@
-# RAMI NETWORK
+# RAMİ NETWORK
 
-**RAMİ TV Network Management Platform**
+**Simple IPTV playlist management**
 
-RAMI NETWORK is the independent administration application for the RAMİ TV multi-channel network.
+RAMİ NETWORK is the private Android administration app for the owner's IPTV channel.
+
+## How it works
+
+- Upload video files that you own or are authorized to distribute.
+- Choose their playback order.
+- The server plays video 1 to its end, then video 2, then video 3, and so on.
+- After the last video, playback returns to the first video and repeats.
+- Add, remove, or reorder videos while the channel is running; ordinary edits take effect at the next video boundary.
+- Start or stop the channel from the administration app.
+
+The first pilot is **RAMİ 1TV**. Keep the first version simple; do not build a satellite station, studio workflow, or complex broadcast scheduler.
 
 ## Product boundaries
 
-- **RAMI NETWORK** — administrator-only app for channel setup, media libraries, playlists, schedules, branding, and broadcast operations.
+- **RAMİ NETWORK** — owner-only control app for the video library, ordered playlist, and channel status.
 - **SINJAR TV SHOW** — viewer application.
-- **ROYAL+ Launcher** — viewer client for the Sinjar TV section.
-- Viewer applications consume published channel data; they do not administer the network.
+- **ROYAL+ Launcher** — viewer client.
+- Viewer apps consume the published HLS playback address and viewer-safe status. They never administer the network.
 
 ## Current repository state
 
-The initial Android/Kotlin/Jetpack Compose project is now on `main`, with an Arabic-first black-and-gold dashboard shell and an Android CI workflow. The dashboard cards are placeholders: channel management, media storage, scheduling, authentication, and live broadcast are **not implemented yet**.
+The Android/Kotlin/Jetpack Compose project and Android CI baseline are on `main`. The dashboard is an early shell; real upload, server control, continuous playlist playback, and production HLS delivery are not yet complete.
 
-See [the architecture plan](docs/ARCHITECTURE.md), [the viewer API contract](docs/API_CONTRACT.md), and the [self-hosted broadcast foundation](docs/SELF_HOSTED_BROADCAST.md).
+See [the simple IPTV architecture](docs/ARCHITECTURE.md), [the playback foundation and safety gates](docs/SELF_HOSTED_BROADCAST.md), and [the viewer API contract](docs/API_CONTRACT.md).
 
-## Core product rules
+## Important rules
 
-1. Each channel has its own identity, media library, and ordered playlist.
-2. Channel numbers are assigned automatically; channel names and logos can be customized.
-3. Published changes reach viewer apps through a central API without requiring app updates.
-4. Playback timing is controlled by a continuously available server-side broadcast service, not by the admin app or an individual viewer device.
-5. Streaming should use HLS or another suitable streaming protocol when the source and distribution rights permit it. Viewers should not need to download an entire long video before playback.
-6. Content must be owned, licensed, or otherwise authorized for distribution.
-7. Infrastructure must be assessed against real free-tier limits. No paid service, billing account, or payment method may be introduced without explicit approval.
+1. The server, not the phone, controls playback.
+2. Each channel has one ordered playlist that loops automatically.
+3. The HLS endpoint must remain playable across video transitions and be tested in VLC and target viewer apps.
+4. Production library videos must be at least 500 MB, as agreed.
+5. Content must be owned or authorized for distribution.
+6. Hosting budget is **$0 only**. No card, PayPal, billing activation, paid trial, automatic upgrade, or debt.
+7. Do not upload the owner's real videos or activate production credentials until hosting, security, and backup are approved.
 
 ## Build
 
-The GitHub Actions workflow `.github/workflows/android-ci.yml` builds the debug APK on pushes and pull requests targeting `main`. The project currently uses Android Gradle Plugin 8.7.3, Kotlin 2.2.0, Java 17, and compile SDK 35.
+The GitHub Actions workflow `.github/workflows/android-ci.yml` builds the debug APK on pushes and pull requests targeting `main`. The project uses Android Gradle Plugin 8.7.3, Kotlin 2.2.0, Java 17, and compile SDK 35.
 
 ## Security
 
-Never commit credentials, signing keys, private tokens, or service secrets. Use repository/service secret storage. Administrative APIs must enforce server-side authentication and authorization; hiding controls in the app is not a security boundary.
+Never commit credentials, signing keys, private tokens, or service secrets. Owner actions must be authenticated and authorized on the server; hiding controls in the app is not a security boundary.
 
 ## Languages
 
