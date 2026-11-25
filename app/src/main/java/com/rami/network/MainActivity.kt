@@ -59,6 +59,7 @@ private enum class AdminSection(val title: String) {
     CHANNELS("القنوات"),
     LIBRARY("مكتبة المحتوى"),
     SCHEDULE("جدول البث"),
+    PLAYBACK("مشغل القناة"),
     BRANDING("هوية الشبكة"),
     SETTINGS("الإعدادات")
 }
@@ -110,6 +111,7 @@ private fun RoyalNetworkApp() {
                 AdminSection.CHANNELS -> ChannelsContent()
                 AdminSection.LIBRARY -> LibraryContent()
                 AdminSection.SCHEDULE -> ScheduleContent()
+                AdminSection.PLAYBACK -> PlaylistPlayerScreen()
                 AdminSection.BRANDING -> BrandingContent()
                 AdminSection.SETTINGS -> SettingsContent()
             }
@@ -163,6 +165,7 @@ private fun SectionNavigation(
             NavigationButton(AdminSection.BRANDING, selected, onSelect, Modifier.weight(1f))
             NavigationButton(AdminSection.SETTINGS, selected, onSelect, Modifier.weight(1f))
         }
+        NavigationButton(AdminSection.PLAYBACK, selected, onSelect, Modifier.fillMaxWidth())
     }
 }
 
