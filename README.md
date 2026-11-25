@@ -15,7 +15,7 @@ RAMI NETWORK is the independent administration application for the RAMİ TV mult
 
 The initial Android/Kotlin/Jetpack Compose project is now on `main`, with an Arabic-first black-and-gold dashboard shell and an Android CI workflow. The dashboard cards are placeholders: channel management, media storage, scheduling, authentication, and live broadcast are **not implemented yet**.
 
-See [the architecture plan](docs/ARCHITECTURE.md) and [the viewer API contract](docs/API_CONTRACT.md).
+See [the architecture plan](docs/ARCHITECTURE.md), [the viewer API contract](docs/API_CONTRACT.md), and the [self-hosted broadcast foundation](docs/SELF_HOSTED_BROADCAST.md).
 
 ## Core product rules
 
