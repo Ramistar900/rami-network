@@ -1,139 +1,127 @@
-# RAMİ NETWORK — Self-Hosted Broadcast Foundation
+# RAMİ NETWORK — Simple IPTV Playlist
 
-## Status
+## Product decision
 
-- Decision: RAMİ owns and operates the application code, broadcast engine, transcoding pipeline, channel configuration, and operational data.
-- Initial pilot: one channel, up to 10 broadcast hours per day.
-- Expansion target: four independent channels after the pilot passes reliability and resource tests.
-- Hosting: a self-managed Linux server (cloud VM or physical machine). A cloud VM is only rented infrastructure; it is not a third-party broadcast platform.
-- Cost guardrail: $0 only. No payment card, PayPal, billing activation, automatic upgrade, paid trial, or debt. If a free host cannot meet the requirements, deployment pauses rather than creating charges.
-- No video uploads, live credentials, or production secrets are permitted during this foundation phase.
+RAMİ NETWORK is a simple, owner-controlled IPTV playlist system. It is not a satellite television station, studio, or complex broadcast scheduling platform.
 
-## 1. Ownership boundary
+The owner uploads authorized video files, chooses their order, and controls one channel. The server plays the list continuously:
 
-RAMİ owns and maintains these software components:
+1. Play video 1 until it ends.
+2. Start video 2 automatically, then video 3, and so on.
+3. After the final video, return to the first video and repeat.
+4. The owner can add, remove, or reorder items while the channel is running.
+5. The owner can start or stop the channel from the Android administration app.
 
-1. **RAMİ Control API** — authenticated administration, channel configuration, media metadata, schedules, publication, and audit history.
-2. **RAMİ Broadcast Engine** — server-side scheduler and playout controller. It starts, stops, loops, and monitors channel output independently of the administrator's phone.
-3. **FFmpeg** — media inspection, remuxing, and transcoding when required. Prefer stream copy when the source already matches the target format; transcoding is CPU-intensive and should not be performed unnecessarily.
-4. **MediaMTX** — media routing and delivery. It supports publishing and reading streams over protocols including RTMP, SRT, WebRTC, RTSP, and HLS, and can expose operational metrics.
-5. **RAMİ Storage** — the media data plane. Original video files live on storage controlled by RAMİ. The control database stores metadata and storage keys, not video binaries.
-6. **PostgreSQL** — authoritative metadata, channel configuration, playlists, schedules, user roles, playback sessions, and audit events.
+The first pilot is one channel: **RAMİ 1TV**. Do not build the other planned channels until this pilot is proven.
 
-The selected host supplies only the underlying compute, disk, and network connection. It must not own the channel logic or require RAMİ to use a proprietary playout service.
+## What the first version needs
 
-## 2. Initial deployment shape
+Keep the system to the smallest reliable set of parts:
 
-For the first pilot, keep the system small and separable:
+- **RAMİ NETWORK Android app** — the private control panel for uploading videos, editing the ordered playlist, and starting/stopping the channel.
+- **Small server-side control service** — authenticates the owner, stores playlist changes, and reports the confirmed channel state.
+- **RAMİ Storage** — persistent disk space on the server for the original video files.
+- **Playlist playback controller** — runs continuously on the server, selects the next item, handles looping, and applies playlist edits safely at video boundaries.
+- **FFmpeg** — inspects media and prepares or serves compatible playback. Prefer stream copy/remux where possible; transcode only when compatibility requires it.
+- **HLS output** — one stable playback address that supported IPTV players and VLC can open.
 
-- One Linux server.
-- One RAMİ Control API process.
-- One PostgreSQL instance.
-- One MediaMTX process.
-- One FFmpeg playout worker for the pilot channel.
-- One persistent media directory/volume owned by RAMİ.
-- HTTPS reverse proxy and firewall rules.
-- Health checks, disk-space checks, and outbound-traffic counters.
+Do not add PostgreSQL, MediaMTX, a CDN, Kubernetes, Cloudflare Workers, Supabase, or a paid media platform by default. Add a component only if a measured technical requirement proves it is necessary. A small local metadata store or playlist file is sufficient for the first prototype.
 
-Do not split into multiple servers or add Kubernetes, a CDN, Cloudflare Workers, Supabase, or a paid media platform during the pilot. Revisit separation only after measured load demonstrates a need.
+## Playlist behaviour and safe editing
 
-## 3. Pilot channel behaviour
+- The server, not the phone, owns playback timing and the current item.
+- The current video should finish before ordinary playlist edits take effect.
+- Additions, removals, and reordering are applied at the next video boundary.
+- Removing the currently playing item must not abruptly cut it off; the new list takes effect after it ends.
+- If the playlist is empty, the channel is stopped/unavailable. Never report a false live state.
+- If a file is missing or unreadable, report the error and follow a documented safe skip/stop policy; never silently claim that the missing video is playing.
+- Restart recovery must restore the saved playlist and resume from a clearly defined safe point. Do not claim frame-accurate resume unless it is tested.
+- The HLS playback address must remain usable across transitions. The implementation must be tested in VLC and the intended viewer apps; merely generating separate HLS files for each video is not sufficient proof of a continuous channel.
 
-- Start with one test channel for up to 10 hours per day.
-- The scheduler uses server time and a configured timezone, never the phone's clock.
-- The playlist plays in its defined order and automatically returns to the first item when the end is reached.
-- The channel must expose a stable HLS playback endpoint suitable for supported viewer clients and VLC.
-- A stopped or unhealthy publisher must be reported as unavailable; the system must never display a false "live" state.
-- The administrator's phone is only a control client. Closing it must not stop scheduled playback.
-- Production library items must respect the agreed minimum file size of 500 MB. Synthetic test patterns may be used only for infrastructure smoke tests and must not be presented as real library content.
+## Media library rules
 
-## 4. Media and transcoding policy
+- Only upload content the owner owns or is authorized to distribute.
+- The agreed minimum production-library file size is **500 MB**. Do not treat tiny synthetic clips as real library content.
+- Keep each original file unchanged.
+- Inspect container, codecs, dimensions, frame rate, duration, and readability before adding a video to the playlist.
+- Store playback outputs and temporary HLS segments separately from original uploads.
+- Track available disk space and prevent uploads that would exceed the configured safe storage limit.
+- Uploads should be resumable where practical and verified before the item becomes available in the playlist.
 
-- Inspect the source file before scheduling it: container, video/audio codecs, dimensions, frame rate, duration, and readability.
-- Prefer remuxing or stream copy when compatible with the target playback profile.
-- Transcode only when required for compatibility or a selected quality profile.
-- Do not assume that four simultaneous 1080p transcodes fit on a small free VM. Measure CPU, RAM, disk I/O, and thermal/host limits using the actual source media.
-- The initial pilot should use one output profile. Adaptive bitrate profiles are a later phase after resource measurements.
-- Keep the original source file unchanged. Generated playback renditions and temporary HLS segments must be stored separately and cleaned according to a documented retention policy.
+## Server and independence
 
-## 5. Viewer delivery and bandwidth
+- The playback controller and media files live on a persistent Linux server.
+- Closing the owner's phone or uninstalling the admin app must not interrupt playback.
+- The server must have persistent storage and a continuously running process for the hours the channel is intended to broadcast.
+- A server restart must not lose the playlist or original videos.
+- Do not select or activate a hosting provider until its current free limits and terms pass the gate below.
 
-The server sends a separate unicast media stream to each viewer unless a separately validated distribution layer is introduced. Outbound bandwidth therefore grows with viewer count.
+## Zero-cost hosting gate
 
-For planning only, at 2.5 Mbps per viewer:
-- One viewer for 10 hours is approximately 11.25 GB.
-- Ten viewers watching one channel for 10 hours are approximately 112.5 GB.
-- Four channels each running 10 hours with one viewer per channel are approximately 45 GB total.
+The budget is **$0 only**. No payment card, PayPal, billing activation, paid trial, automatic upgrade, subscription, or debt.
 
-These are estimates before protocol overhead and reconnects. A host must publish a clear outbound-traffic allowance and hard-stop behaviour. Do not describe any free quota as unlimited.
+A hosting candidate is rejected unless current official provider terms confirm:
 
-## 6. Audience measurement contract
+1. A persistent Linux process is allowed; not a short-lived sandbox or sleeping app.
+2. Persistent disk is available and its limits are clear.
+3. CPU, RAM, storage, region, reclaim/idle rules, and outbound bandwidth are documented.
+4. Video streaming and the required FFmpeg workload are permitted.
+5. There is a reliable way to stop the workload before any paid usage can accrue.
+6. The account can remain at $0 without post-trial charges.
 
-- A device is one viewer; do not estimate the number of people in front of a TV.
-- Opening a channel page does not count as a view.
-- Count one view only after the player confirms continuous actual playback for 10 minutes.
-- Leaving before 10 minutes produces no counted view.
-- Count at most once per viewing session; do not add another view every 10 minutes.
+A free Android CI runner is not a production IPTV server. If no provider passes, continue software prototyping and tests without public streaming or uploading the owner's real videos. Never silently switch to a paid service.
+
+## Bandwidth reality
+
+HLS delivery to viewers generally uses outbound data for each viewer. As a planning example, one 2.5 Mbps viewer watching for 10 hours consumes about 11.25 GB before protocol overhead and reconnects. Ten viewers consume about 112.5 GB over the same period. No free quota may be described as unlimited.
+
+## Security and ownership
+
+- Never commit passwords, API tokens, stream keys, signing keys, or production URLs.
+- Protect all owner controls with server-side authentication and authorization.
+- Keep administration endpoints and storage credentials private.
+- Viewer apps receive only the published playback address and viewer-safe channel information, never administrative credentials.
+- Use HTTPS for administration and playback where supported.
+- Keep a backup of the playlist and media inventory; test recovery before production uploads.
+
+## View counting contract
+
+- One television/device is one viewer.
+- Opening the channel or player does not count as a view.
+- Count one view only after continuous actual playback reaches 10 minutes.
+- If the device leaves before 10 minutes, count no view.
+- Count at most one view per viewing session; do not add another view every 10 minutes.
 - Track actual watch duration separately.
-- Use player playback signals/heartbeats and server-side session validation. A merely open app or background page is not proof of playback.
+- Use player playback signals and server-side session validation; an open app alone is not proof of playback.
 - A short reconnect must not create a second view.
-- The rule for when the same device may earn another view after ending a session remains undecided; do not invent that rule.
+- The rule for when the same device can earn another view after a session ends remains undecided. Do not invent it.
 
-## 7. Security requirements
+## Acceptance tests
 
-- No secrets, passwords, signing keys, stream tokens, or production URLs in Git.
-- Use SSH keys, least-privilege server accounts, firewall allowlists where practical, HTTPS, and short-lived viewer tokens.
-- Keep database and MediaMTX control/metrics interfaces private; expose only required viewer endpoints through the reverse proxy.
-- Protect all administrative writes with server-side authentication and authorization.
-- Keep an audit record for channel, playlist, schedule, storage, and user changes.
-- Back up database metadata and the media inventory. A backup plan must be tested before production uploads.
-- Never expose an administrator or storage credential to SINJAR TV SHOW or ROYAL+ Launcher.
+### Gate A — safe prototype
+- No secrets in Git.
+- Playlist ordering, editing, looping, and empty-list behaviour have automated tests.
+- Missing/unreadable files are handled explicitly.
+- Changes are applied at video boundaries without corrupting the saved list.
 
-## 8. Free-host qualification gate
+### Gate B — one-channel playback
+- A rights-cleared test file is inspected.
+- At least two compatible test videos play in order, then loop to the first.
+- The HLS address remains playable through transitions in VLC and a supported viewer.
+- Add/remove/reorder operations take effect at the next boundary.
+- Closing the phone does not stop server playback.
+- Restart recovery and CPU/RAM/disk/outbound usage are measured.
 
-No provider is selected yet. A candidate is rejected unless all of the following are verified from the provider's own current terms:
+### Gate C — real pilot
+- Only after a hosting candidate passes the $0 gate and the owner approves it.
+- Run the intended daily schedule and monitor gaps, restarts, storage, and bandwidth.
+- Verify the 10-minute view-counting rule.
+- Stop before any quota or cost guardrail is crossed.
 
-1. A persistent Linux server is allowed; not a 15-minute sandbox or sleeping application container.
-2. No payment card, PayPal, paid trial, recurring subscription, billing activation, or automatic upgrade is required.
-3. The exact CPU, RAM, disk, region, and reclaim/idle policy are documented.
-4. Outbound bandwidth and transfer limits are documented and sufficient for the pilot test.
-5. The provider permits video streaming and FFmpeg/MediaMTX workloads under its acceptable-use policy.
-6. There is a reliable way to stop the service before any paid usage can accrue.
-7. The account can remain at $0 without a debt or post-trial charge.
+## Explicitly not in the first version
 
-If no candidate passes, do not deploy a public broadcast service. Continue building and testing the software locally or in non-production CI without uploading the owner's videos.
-
-## 9. Acceptance gates
-
-### Gate A — configuration and security
-- Server image and dependency versions are pinned.
-- No secrets are committed.
-- Firewall and authentication are reviewed.
-- Quotas and stop conditions are written down.
-
-### Gate B — one-channel technical test
-- A rights-cleared test file is inspected successfully.
-- FFmpeg starts and stops deterministically.
-- MediaMTX publishes and serves the stream.
-- HLS playback works in a compatible player and VLC.
-- Playlist looping works across the end boundary.
-- The administrator's phone can close without interrupting the server process.
-- CPU, RAM, disk, and outbound traffic are recorded.
-
-### Gate C — ten-hour pilot
-- One channel completes the planned ten-hour window.
-- No unexplained playback gap or false-live status occurs.
-- Recovery after a process restart is verified.
-- View counting follows the 10-minute rule.
-- No quota or cost guardrail is crossed.
-
-Only after all gates pass may the design be expanded to the four channels.
-
-## 10. Explicitly out of scope for this foundation
-
-- Selecting or activating a hosting provider.
-- Creating a paid account or enabling billing.
-- Uploading the owner's video library.
-- Adding production stream keys or viewer credentials.
-- Promising unlimited free bandwidth or guaranteed 24/7 availability.
-- Changing SINJAR TV SHOW or ROYAL+ Launcher before inspecting their current integration contracts.
+- Satellite reception, studio equipment, or traditional broadcast scheduling.
+- Multiple channels before RAMİ 1TV passes its pilot.
+- Complex programme grids, ad insertion, subscriptions, or paid streaming platforms.
+- CDN or multi-server deployment before measured need.
+- Uploading the owner's real video library before hosting, security, and backup are approved.
