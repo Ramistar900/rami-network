@@ -233,7 +233,6 @@ fun PlaylistPlayerScreen() {
                                 OutlinedButton(
                                     onClick = {
                                         val activeState = controllerState
-                                        val newVideos = videos.filterNot { it.id == video.id }
                                         if (activeState?.isRunning == true) {
                                             val base = activeState.pendingEntries ?: activeState.entries
                                             val updatedEntries = base.filterNot { it.mediaItemId == video.id }
