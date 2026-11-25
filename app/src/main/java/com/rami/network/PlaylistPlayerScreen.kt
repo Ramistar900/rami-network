@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -219,11 +217,11 @@ fun PlaylistPlayerScreen() {
                 if (videos.isEmpty()) {
                     Text("لا توجد فيديوهات مضافة بعد.")
                 } else {
-                    LazyColumn(
+                    Column(
                         modifier = Modifier.height(220.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        itemsIndexed(videos, key = { _, item -> item.id }) { index, video ->
+                        videos.forEachIndexed { index, video ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
