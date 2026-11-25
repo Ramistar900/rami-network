@@ -75,7 +75,7 @@ fun PlaylistPlayerScreen() {
         status = "يعمل الآن: ${video.title}"
     }
 
-    val onEnded by rememberUpdatedState(newValue = {
+    val onEndedState = rememberUpdatedState(newValue = {
         val oldState = controllerState
         if (oldState != null && oldState.isRunning) {
             val nextState = PlaylistPlaybackController.onItemEnded(oldState)
@@ -92,7 +92,7 @@ fun PlaylistPlayerScreen() {
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) onEnded()
+                if (playbackState == Player.STATE_ENDED) onEndedState.value.invoke()
             }
         }
         player.addListener(listener)
@@ -168,6 +168,7 @@ fun PlaylistPlayerScreen() {
                 PlayerView(viewContext).apply {
                     this.player = player
                     useController = true
+                    keepScreenOn = true
                 }
             },
             update = { it.player = player },
